@@ -28,7 +28,7 @@ def calculate_interpurchase(df):
 
 # --- Load model & scaler ---
 model = pickle.load(open('time_to_next_purchase_model.pkl', 'rb'))
-scaler = pickle.load(open('time_to_next_purchase_scaler.pkl', 'rb'))
+scaler = pickle.load(open('time_to_next_purchase_scaler.pkl', 'rb'))  # use the correct scaler filename
 
 # --- Load and preprocess data ---
 df = pd.read_csv('Data Analysis - Sample File.csv')
@@ -43,31 +43,40 @@ df['Redistribution Value'] = (
 rfm_df = calculate_rfm(df)
 ipi_df = calculate_interpurchase(df)
 features_df = rfm_df.merge(ipi_df, on='Customer_Phone', how='left')
-features_df['Day_of_Week'] = df.groupby('Customer_Phone')['Delivered_date'].max().dt.dayofweek.values
-features_df['Month'] = df.groupby('Customer_Phone')['Delivered_date'].max().dt.month.values
+features_df['Day_of_Week'] = (
+    df.groupby('Customer_Phone')['Delivered_date'].max().dt.dayofweek.values
+)
+features_df['Month'] = (
+    df.groupby('Customer_Phone')['Delivered_date'].max().dt.month.values
+)
 features_df.fillna(0, inplace=True)
 
 # --- Streamlit UI ---
 st.title("Next Purchase Prediction")
 
 # Customer selector
-customers = features_df['Customer_Phone'].unique()
-customer = st.selectbox("Select a Customer", customers)
+t_customer = features_df['Customer_Phone'].unique()
+customer = st.selectbox("Select a Customer", t_customer)
 
-# Predict for selected customer
+# Extract features for selected customer
 cust_feat = features_df[features_df['Customer_Phone'] == customer]
-feature_cols = ['Recency', 'Frequency', 'Monetary', 'Avg_Interpurchase_Interval', 'Day_of_Week', 'Month']
-X = cust_feat[feature_cols].values
+feature_cols = [
+    'Recency', 'Frequency', 'Monetary',
+    'Avg_Interpurchase_Interval', 'Day_of_Week', 'Month'
+]
+X = cust_feat[feature_cols].to_numpy()
+
 if X.size == 0:
     st.error(f"No features found for customer {customer}")
 else:
+    # Ensure 2D array
     if X.ndim == 1:
         X = X.reshape(1, -1)
+    # Scale and predict
     X_scaled = scaler.transform(X)
     pred_days = model.predict(X_scaled)[0]
     st.metric("Predicted days until next purchase", f"{pred_days:.1f} days")
 
-# Optional: show history
-if st.checkbox("Show customer purchase history"):
+# Optional: show customer purchase history\if st.checkbox("Show customer purchase history"):
     history = df[df['Customer_Phone'] == customer].sort_values('Delivered_date')
     st.dataframe(history[['Delivered_date', 'Order_Id', 'Redistribution Value']])
