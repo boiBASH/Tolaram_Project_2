@@ -28,7 +28,7 @@ def calculate_interpurchase(df):
 
 # --- Load model & scaler ---
 model = pickle.load(open('time_to_next_purchase_model.pkl','rb'))
-scaler = pickle.load(open('time_to_next_purchase_model_scaler.pkl','rb'))
+scaler = pickle.load(open('time_to_next_purchase_scaler.pkl','rb'))
 
 # --- Load and preprocess data ---
 df = pd.read_csv('Data Analysis - Sample File.csv')
