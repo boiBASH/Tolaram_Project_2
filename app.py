@@ -27,15 +27,15 @@ def calculate_interpurchase(df):
     return grp['Avg_Interpurchase_Interval'].reset_index()
 
 # --- Load model & scaler ---
-model = pickle.load(open('time_to_next_purchase_model.pkl','rb'))
-scaler = pickle.load(open('time_to_next_purchase_scaler.pkl','rb'))
+model = pickle.load(open('time_to_next_purchase_model.pkl', 'rb'))
+scaler = pickle.load(open('time_to_next_purchase_scaler.pkl', 'rb'))
 
 # --- Load and preprocess data ---
 df = pd.read_csv('Data Analysis - Sample File.csv')
 df['Delivered_date'] = pd.to_datetime(df['Delivered_date'], dayfirst=True)
 df['Redistribution Value'] = (
     df['Redistribution Value'].astype(str)
-        .str.replace(',','')
+        .str.replace(',', '')
         .astype(float)
 )
 
@@ -56,13 +56,15 @@ customer = st.selectbox("Select a Customer", t_customer)
 
 # Predict for selected customer
 cust_feat = features_df[features_df['Customer_Phone'] == customer]
-X = cust_feat[['Recency','Frequency','Monetary','Avg_Interpurchase_Interval','Day_of_Week','Month']].values
+feature_cols = ['Recency', 'Frequency', 'Monetary', 'Avg_Interpurchase_Interval', 'Day_of_Week', 'Month']
+X = cust_feat[feature_cols].values
+if X.ndim == 1:
+    X = X.reshape(1, -1)
 X_scaled = scaler.transform(X)
 pred_days = model.predict(X_scaled)[0]
-
 st.metric("Predicted days until next purchase", f"{pred_days:.1f} days")
 
 # Optional: show history
 if st.checkbox("Show customer purchase history"):
     history = df[df['Customer_Phone'] == int(customer)].sort_values('Delivered_date')
-    st.dataframe(history[['Delivered_date','Order_Id','Redistribution Value']])
+    st.dataframe(history[['Delivered_date', 'Order_Id', 'Redistribution Value']])
