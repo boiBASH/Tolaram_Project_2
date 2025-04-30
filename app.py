@@ -51,20 +51,23 @@ features_df.fillna(0, inplace=True)
 st.title("Next Purchase Prediction")
 
 # Customer selector
-t_customer = features_df['Customer_Phone'].astype(str)
-customer = st.selectbox("Select a Customer", t_customer)
+customers = features_df['Customer_Phone'].unique()
+customer = st.selectbox("Select a Customer", customers)
 
 # Predict for selected customer
 cust_feat = features_df[features_df['Customer_Phone'] == customer]
 feature_cols = ['Recency', 'Frequency', 'Monetary', 'Avg_Interpurchase_Interval', 'Day_of_Week', 'Month']
 X = cust_feat[feature_cols].values
-if X.ndim == 1:
-    X = X.reshape(1, -1)
-X_scaled = scaler.transform(X)
-pred_days = model.predict(X_scaled)[0]
-st.metric("Predicted days until next purchase", f"{pred_days:.1f} days")
+if X.size == 0:
+    st.error(f"No features found for customer {customer}")
+else:
+    if X.ndim == 1:
+        X = X.reshape(1, -1)
+    X_scaled = scaler.transform(X)
+    pred_days = model.predict(X_scaled)[0]
+    st.metric("Predicted days until next purchase", f"{pred_days:.1f} days")
 
 # Optional: show history
 if st.checkbox("Show customer purchase history"):
-    history = df[df['Customer_Phone'] == int(customer)].sort_values('Delivered_date')
+    history = df[df['Customer_Phone'] == customer].sort_values('Delivered_date')
     st.dataframe(history[['Delivered_date', 'Order_Id', 'Redistribution Value']])
